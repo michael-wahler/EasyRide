@@ -4,45 +4,54 @@ from os import listdir
 from os.path import isfile, join
 import argparse
 import logging
+from datetime import datetime, date
 
 # This script extracts amount from the automatically generated
 # EasyRide receipts from SBB.
 
+# FIXME Calculating the amounts with floats introduces some strange rounding errors
+
 # The regular expression in the English version of EasyRide
-REGEX = {'EN' : 'Total amount chargedCHF (.+?)VAT'}
+REGEX_TOTAL_AMOUNT = {'EN' : 'Total amount chargedCHF (.+?)VAT'}
+
+REGEX_RIDE_DATE = {'EN' : 'Date: (.+?)Sales-ID'}
 
 FILETYPE = '.pdf'
 
-#
-# Searches for "Total amount charged" in page 0 of the PDF, returns amount in CHF
-def extract_total_amount (args, regex, filename):
+# takes as argument the raw text of the PDF
+# returns the date of the ride as datetime object
+def extract_date_of_ride (text):
+    m = re.search(REGEX_RIDE_DATE['EN'], text)
+    if m:
+        found = m.group(1)
+        print (found)
+        # 19 Oct 2021
+        thedate = datetime.strptime(found, '%d %b %Y')
+        return thedate
+    else:
+        return None
+
+# takes as argument the raw text of the PDF
+# returns the amount of the ride as a float
+def extract_amount_of_ride(args, text):
+    m = re.search(REGEX_TOTAL_AMOUNT[args.language], text)
+    if m:
+        found = m.group(1)
+        return float(found)
+    else:
+        return None
+
+# returns a string with the raw text of the PDF
+def extract_PDF_text (args, filename, pagenumber = 0):
     with open(join(args.path,filename), 'rb') as file:
         pdfReader = PdfFileReader(file)
-        pageObj = pdfReader.getPage(0)
+        pageObj = pdfReader.getPage(pagenumber)
         # extracting text from page
-        text=pageObj.extractText()
-        m = re.search(regex, text)
-        if m:
-            found = m.group(1)
-            return float(found)
-        else:
-            raise Exception ('no amount could be found')
+        return pageObj.extractText()
 
-
-def process_files (args):
-    logging.info ('Searching for files in path {path}...'.format(path=args.path))
-    filelist = [f for f in listdir(args.path) if isfile(join(args.path, f))]
-    logging.info ('  Processing {n} files.'.format(n=len(filelist)))
-    amounts = []
-    for file in filelist:
-        if (file.endswith(FILETYPE)):
-            logging.info ('  Found file of type {filetype}: {filename}'.format(filetype=FILETYPE, filename = file))
-            amount = extract_total_amount (args, REGEX[args.language], file)
-            logging.info ('  File contains amount {amount}'.format (amount=amount))
-            amounts.append(amount)
-    calculate_sum(args, amounts)
-
-def calculate_sum (args, amounts):
+# calculates the sum in the list 'amounts' for each amount between min and max
+# returns a tuple of (sum, number of elements that matched criteria)
+def calculate_and_print_sum (args, amounts):
     logging.info ('Calculating the sum of all amounts...')
     sum = 0.0
     count = 0
@@ -54,12 +63,39 @@ def calculate_sum (args, amounts):
         else:
             logging.info ('  Ignoring amount CHF {amount}'.format(amount=amount))
 
-    print ('Total sum: CHF {sum} ({count} entries)'.format(sum = sum, count=count))
+    return [sum, count]
 
 
+# Goes through all PDFs in the desired directory, extracts amounts, and calculates the sum
+def print_total_sum_from_files (args):
+    logging.info ('Searching for files in path {path}...'.format(path=args.path))
+    filelist = [f for f in listdir(args.path) if isfile(join(args.path, f))]
+    logging.info ('  Processing {n} files.'.format(n=len(filelist)))
+    amounts = []
+    for file in filelist:
+        if (file.endswith(FILETYPE)):
+            logging.info ('  Found file of type {filetype}: {filename}'.format(filetype=FILETYPE, filename = file))
+            pdf_text = extract_PDF_text(args, file)
+            amount = extract_amount_of_ride (args, pdf_text)
+            logging.info ('  File contains amount {amount}'.format (amount=amount))
+            amounts.append(amount)
+    result = calculate_and_print_sum(args, amounts)
+    print ('Total sum: CHF {sum} ({count} entries)'.format(sum = result[0], count=result[1]))
+
+# this is some code to test new functionality
 def run_diag (args):
-    pass
-
+    logging.info ('Running some diagnostics...')
+    filelist = [f for f in listdir(args.path) if isfile(join(args.path, f))]
+    if len (filelist) > 0:
+        filename = filelist[0]
+        if (filename.endswith(FILETYPE)):
+            with open(join(args.path,filename), 'rb') as file:
+                print (filename)
+                pdfReader = PdfFileReader(file)
+                pageObj = pdfReader.getPage(0)
+                # extracting text from page
+                text=pageObj.extractText()
+                extract_date_of_ride (text)
 
 def main():
     parser = argparse.ArgumentParser(description='Extract amounts from EasyRide purchase receipts and sum them up.')
@@ -73,11 +109,10 @@ def main():
 
     logging.basicConfig(level=args.loglevel)
 
-    # if args.diag is None:
-    #     process_files (args)
-    # else:
-    #     run_diag (args)
-    process_files (args)
+    if not args.diag:
+        print_total_sum_from_files (args)
+    else:
+        run_diag (args)
 
 if __name__ == "__main__":
     main()
