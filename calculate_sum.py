@@ -33,11 +33,11 @@ def extract_date_of_ride (text):
 
 # takes as argument the raw text of the PDF
 # returns the amount of the ride as a float
-def extract_amount_of_ride(args, text):
+def extract_amount_of_ride_in_cents (args, text):
     m = re.search(REGEX_TOTAL_AMOUNT[args.language], text)
     if m:
         found = m.group(1)
-        return float(found)
+        return round (float(found)*100)
     else:
         return None
 
@@ -53,15 +53,15 @@ def extract_PDF_text (args, filename, pagenumber = 0):
 # returns a tuple of (sum, number of elements that matched criteria)
 def calculate_and_print_sum (args, amounts):
     logging.info ('Calculating the sum of all amounts...')
-    sum = 0.0
+    sum = 0
     count = 0
     for amount in amounts:
-        if (amount >= args.min) and (amount <= args.max):
-            logging.info ('  Adding amount CHF {amount}'.format(amount=amount))
+        if (amount >= args.min * 100) and (amount <= args.max * 100):
+            logging.info ('  Adding amount CHF (cents) {amount}'.format(amount=amount))
             sum += amount
             count += 1
         else:
-            logging.info ('  Ignoring amount CHF {amount}'.format(amount=amount))
+            logging.info ('  Ignoring amount CHF (cents) {amount}'.format(amount=amount))
 
     return [sum, count]
 
@@ -76,11 +76,11 @@ def print_total_sum_from_files (args):
         if (file.endswith(FILETYPE)):
             logging.info ('  Found file of type {filetype}: {filename}'.format(filetype=FILETYPE, filename = file))
             pdf_text = extract_PDF_text(args, file)
-            amount = extract_amount_of_ride (args, pdf_text)
-            logging.info ('  File contains amount {amount}'.format (amount=amount))
+            amount = extract_amount_of_ride_in_cents (args, pdf_text)
+            logging.info ('  File contains amount CHF (cents) {amount}'.format (amount=amount))
             amounts.append(amount)
     result = calculate_and_print_sum(args, amounts)
-    print ('Total sum: CHF {sum} ({count} entries)'.format(sum = result[0], count=result[1]))
+    print ('Total sum: CHF {sum:.2f} ({count} entries)'.format(sum = result[0]/100, count=result[1]))
 
 # this is some code to test new functionality
 def run_diag (args):
