@@ -110,7 +110,7 @@ def run_diag (args):
 def main():
     parser = argparse.ArgumentParser(description='Extract amounts from EasyRide purchase receipts and sum them up.')
     #parser.add_argument('-p', '--path', default='.', required=False, help='the path where the PDF files with the receipts are located. Default is "."')
-    parser.add_argument('path', metavar='PATH', help='the path where the PDF files with the receipts are located. Default is "."')
+    parser.add_argument('path', metavar='PATH', default='.', nargs='?', help='the path where the PDF files with the receipts are located. Default is "."')
     parser.add_argument('-l', '--language', default='EN', choices=['EN'], required=False, help='the language of the receipts')
     parser.add_argument('--min', default=0.0, type=float, required=False, help='the minimum amount that is considered')
     parser.add_argument('--max', default=999999.99, type=float, required=False, help='the maximum amount that is considered')
