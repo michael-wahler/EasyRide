@@ -9,8 +9,6 @@ from datetime import datetime, date
 # This script extracts amount from the automatically generated
 # EasyRide receipts from SBB.
 
-# TODO add additional parameters with date ranges (min date, max date)
-
 # The regular expression in the English version of EasyRide for the amount
 REGEX_TOTAL_AMOUNT = {'EN' : 'Total amount chargedCHF (.+?)VAT'}
 # The regular expression in the English version of EasyRide for the date
@@ -87,8 +85,9 @@ def print_total_sum_from_files (args):
             if date_of_receipt > latest_receipt_found:
                 latest_receipt_found = date_of_receipt
             logging.info ('  File contains amount CHF (cents) {amount}'.format (amount=amount))
-            # TODO check if date_of_receipt is within the bounds given as arguments
-            amounts.append(amount)
+            # check if date_of_receipt is within the bounds given as arguments
+            if (date_of_receipt >= args.start) and (date_of_receipt <= args.end):
+                amounts.append(amount)
     result = calculate_and_print_sum(args, amounts)
     print ('Total sum: CHF {sum:.2f} ({count} entries)'.format(sum = result[0]/100, count=result[1]))
     logging.info ('Earliest receipt found: ' + earliest_receipt_found.strftime('%d %b %Y'))
@@ -111,11 +110,12 @@ def run_diag (args):
 
 def main():
     parser = argparse.ArgumentParser(description='Extract amounts from EasyRide purchase receipts and sum them up.')
-    #parser.add_argument('-p', '--path', default='.', required=False, help='the path where the PDF files with the receipts are located. Default is "."')
     parser.add_argument('path', metavar='PATH', default='.', nargs='?', help='the path where the PDF files with the receipts are located. Default is "."')
     parser.add_argument('-language', default='EN', choices=['EN'], required=False, help='the language of the receipts')
     parser.add_argument('-min', default=DEFAULT_MIN_AMOUNT, type=float, required=False, help='the minimum amount that is considered')
     parser.add_argument('-max', default=DEFAULT_MAX_AMOUNT, type=float, required=False, help='the maximum amount that is considered')
+    parser.add_argument('-start', default='1970-01-01', type=lambda s: datetime.strptime(s, '%Y-%m-%d'), required=False, help='the start date in format YYYY-MM-DD')
+    parser.add_argument('-end', default=datetime.now().strftime('%Y-%m-%d'), type=lambda s: datetime.strptime(s, '%Y-%m-%d'), required=False, help='the end date in format YYYY-MM-DD')
     parser.add_argument('-log', type=int, default=logging.WARN, choices=[logging.ERROR, logging.WARN, logging.INFO, logging.DEBUG], help='the logging level (lower means more info)')
     parser.add_argument('-d', '--diag', help='runs some diagnostics (may fail)', action='store_true')
     args = parser.parse_args()
