@@ -15,8 +15,8 @@ FILETYPE = '.pdf'
 
 #
 # Searches for "Total amount charged" in page 0 of the PDF, returns amount in CHF
-def extract_total_amount (regex, filename):
-    with open(filename, 'rb') as file:
+def extract_total_amount (args, regex, filename):
+    with open(join(args.path,filename), 'rb') as file:
         pdfReader = PdfFileReader(file)
         pageObj = pdfReader.getPage(0)
         # extracting text from page
@@ -37,7 +37,7 @@ def process_files (args):
     for file in filelist:
         if (file.endswith(FILETYPE)):
             logging.info ('  Found file of type {filetype}: {filename}'.format(filetype=FILETYPE, filename = file))
-            amount = extract_total_amount (REGEX[args.language], file)
+            amount = extract_total_amount (args, REGEX[args.language], file)
             logging.info ('  File contains amount {amount}'.format (amount=amount))
             amounts.append(amount)
     calculate_sum(args, amounts)
@@ -73,11 +73,11 @@ def main():
 
     logging.basicConfig(level=args.loglevel)
 
-    if args.diag is None:
-        process_files (args)
-    else:
-        run_diag (args)
-
+    # if args.diag is None:
+    #     process_files (args)
+    # else:
+    #     run_diag (args)
+    process_files (args)
 
 if __name__ == "__main__":
     main()
