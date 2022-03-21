@@ -9,23 +9,22 @@ from datetime import datetime, date
 # This script extracts amount from the automatically generated
 # EasyRide receipts from SBB.
 
-# FIXME Calculating the amounts with floats introduces some strange rounding errors
+# TODO add additional parameters with date ranges (min date, max date)
 
-# The regular expression in the English version of EasyRide
+# The regular expression in the English version of EasyRide for the amount
 REGEX_TOTAL_AMOUNT = {'EN' : 'Total amount chargedCHF (.+?)VAT'}
-
+# The regular expression in the English version of EasyRide for the date
 REGEX_RIDE_DATE = {'EN' : 'Date: (.+?)Sales-ID'}
 
 FILETYPE = '.pdf'
 
+
 # takes as argument the raw text of the PDF
 # returns the date of the ride as datetime object
-def extract_date_of_ride (text):
-    m = re.search(REGEX_RIDE_DATE['EN'], text)
+def extract_date_of_ride (args, text):
+    m = re.search(REGEX_RIDE_DATE[args.language], text)
     if m:
         found = m.group(1)
-        print (found)
-        # 19 Oct 2021
         thedate = datetime.strptime(found, '%d %b %Y')
         return thedate
     else:
@@ -72,15 +71,26 @@ def print_total_sum_from_files (args):
     filelist = [f for f in listdir(args.path) if isfile(join(args.path, f))]
     logging.info ('  Processing {n} files.'.format(n=len(filelist)))
     amounts = []
+    earliest_receipt_found = datetime.now()
+    latest_receipt_found = datetime.strptime('01 Jan 1970', '%d %b %Y')
+
     for file in filelist:
         if (file.endswith(FILETYPE)):
             logging.info ('  Found file of type {filetype}: {filename}'.format(filetype=FILETYPE, filename = file))
             pdf_text = extract_PDF_text(args, file)
             amount = extract_amount_of_ride_in_cents (args, pdf_text)
+            date_of_receipt = extract_date_of_ride (args, pdf_text)
+            if date_of_receipt < earliest_receipt_found:
+                earliest_receipt_found = date_of_receipt
+            if date_of_receipt > latest_receipt_found:
+                latest_receipt_found = date_of_receipt
             logging.info ('  File contains amount CHF (cents) {amount}'.format (amount=amount))
+            # TODO check if date_of_receipt is within the bounds given as arguments
             amounts.append(amount)
     result = calculate_and_print_sum(args, amounts)
     print ('Total sum: CHF {sum:.2f} ({count} entries)'.format(sum = result[0]/100, count=result[1]))
+    logging.info ('Earliest receipt found: ' + earliest_receipt_found.strftime('%d %b %Y'))
+    logging.info ('Latest receipt found  : ' + latest_receipt_found.strftime('%d %b %Y'))
 
 # this is some code to test new functionality
 def run_diag (args):
@@ -95,7 +105,7 @@ def run_diag (args):
                 pageObj = pdfReader.getPage(0)
                 # extracting text from page
                 text=pageObj.extractText()
-                extract_date_of_ride (text)
+                extract_date_of_ride (args, text)
 
 def main():
     parser = argparse.ArgumentParser(description='Extract amounts from EasyRide purchase receipts and sum them up.')
