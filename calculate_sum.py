@@ -17,6 +17,8 @@ REGEX_TOTAL_AMOUNT = {'EN' : 'Total amount chargedCHF (.+?)VAT'}
 REGEX_RIDE_DATE = {'EN' : 'Date: (.+?)Sales-ID'}
 
 FILETYPE = '.pdf'
+DEFAULT_MIN_AMOUNT = 0.0
+DEFAULT_MAX_AMOUNT = 999999.99
 
 
 # takes as argument the raw text of the PDF
@@ -111,14 +113,14 @@ def main():
     parser = argparse.ArgumentParser(description='Extract amounts from EasyRide purchase receipts and sum them up.')
     #parser.add_argument('-p', '--path', default='.', required=False, help='the path where the PDF files with the receipts are located. Default is "."')
     parser.add_argument('path', metavar='PATH', default='.', nargs='?', help='the path where the PDF files with the receipts are located. Default is "."')
-    parser.add_argument('-l', '--language', default='EN', choices=['EN'], required=False, help='the language of the receipts')
-    parser.add_argument('--min', default=0.0, type=float, required=False, help='the minimum amount that is considered')
-    parser.add_argument('--max', default=999999.99, type=float, required=False, help='the maximum amount that is considered')
-    parser.add_argument('--loglevel', type=int, default=logging.WARN, choices=[logging.WARN, logging.INFO, logging.DEBUG], help='the logging level (lower means more info)')
+    parser.add_argument('-language', default='EN', choices=['EN'], required=False, help='the language of the receipts')
+    parser.add_argument('-min', default=DEFAULT_MIN_AMOUNT, type=float, required=False, help='the minimum amount that is considered')
+    parser.add_argument('-max', default=DEFAULT_MAX_AMOUNT, type=float, required=False, help='the maximum amount that is considered')
+    parser.add_argument('-log', type=int, default=logging.WARN, choices=[logging.ERROR, logging.WARN, logging.INFO, logging.DEBUG], help='the logging level (lower means more info)')
     parser.add_argument('-d', '--diag', help='runs some diagnostics (may fail)', action='store_true')
     args = parser.parse_args()
 
-    logging.basicConfig(level=args.loglevel)
+    logging.basicConfig(level=args.log)
 
     if not args.diag:
         print_total_sum_from_files (args)
