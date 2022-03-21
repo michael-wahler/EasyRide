@@ -9,10 +9,22 @@ from datetime import datetime, date
 # This script extracts amount from the automatically generated
 # EasyRide receipts from SBB.
 
+# List of supported languages
+SUPPORTED_LANGUAGES = ['EN']
 # The regular expression in the English version of EasyRide for the amount
 REGEX_TOTAL_AMOUNT = {'EN' : 'Total amount chargedCHF (.+?)VAT'}
 # The regular expression in the English version of EasyRide for the date
 REGEX_RIDE_DATE = {'EN' : 'Date: (.+?)Sales-ID'}
+
+# check if all Regexes for the supported languages are defined
+# (make this file by adding a language 'XY' to SUPPORTED_LANGUAGES)
+for lang in SUPPORTED_LANGUAGES:
+    try:
+        REGEX_TOTAL_AMOUNT[lang]
+        REGEX_RIDE_DATE[lang]
+    except KeyError as e:
+        print ('INTERNAL ERROR: The source file claims that language {lang} is supported, but it does not define the required regular expressions.'.format(lang=e))
+        exit(1)
 
 FILETYPE = '.pdf'
 DEFAULT_MIN_AMOUNT = 0.0
@@ -111,7 +123,7 @@ def run_diag (args):
 def main():
     parser = argparse.ArgumentParser(description='Extract amounts from EasyRide purchase receipts and sum them up.')
     parser.add_argument('path', metavar='PATH', default='.', nargs='?', help='the path where the PDF files with the receipts are located. Default is "."')
-    parser.add_argument('-language', default='EN', choices=['EN'], required=False, help='the language of the receipts')
+    parser.add_argument('-language', default='EN', choices=SUPPORTED_LANGUAGES, required=False, help='the language of the receipts')
     parser.add_argument('-min', default=DEFAULT_MIN_AMOUNT, type=float, required=False, help='the minimum amount that is considered')
     parser.add_argument('-max', default=DEFAULT_MAX_AMOUNT, type=float, required=False, help='the maximum amount that is considered')
     parser.add_argument('-start', default='1970-01-01', type=lambda s: datetime.strptime(s, '%Y-%m-%d'), required=False, help='the start date in format YYYY-MM-DD')
