@@ -115,21 +115,6 @@ def print_total_sum_from_files (args):
     logging.info ('Earliest receipt found: ' + earliest_receipt_found.strftime('%d %b %Y'))
     logging.info ('Latest receipt found  : ' + latest_receipt_found.strftime('%d %b %Y'))
 
-# this is some code to test new functionality
-def run_diag (args):
-    logging.info ('Running some diagnostics...')
-    filelist = [f for f in listdir(args.path) if isfile(join(args.path, f))]
-    if len (filelist) > 0:
-        filename = filelist[0]
-        if (filename.endswith(FILETYPE)):
-            with open(join(args.path,filename), 'rb') as file:
-                print (filename)
-                pdfReader = PdfFileReader(file)
-                pageObj = pdfReader.getPage(0)
-                # extracting text from page
-                text=pageObj.extractText()
-                extract_date_of_ride (args, text)
-
 def main():
     parser = argparse.ArgumentParser(description='Extract amounts from EasyRide purchase receipts and sum them up.')
     parser.add_argument('path', metavar='PATH', default='.', nargs='?', help='the path where the PDF files with the receipts are located. Default is "."')
@@ -140,7 +125,6 @@ def main():
     parser.add_argument('-endDate', default=datetime.now().strftime('%Y-%m-%d'), type=lambda s: datetime.strptime(s, '%Y-%m-%d'), required=False, help='the end date in format YYYY-MM-DD')
     parser.add_argument('-weekdays', help='only consider receipts from weekdays (Monday-Friday)', action='store_true')
     parser.add_argument('-log', type=int, default=logging.WARN, choices=[logging.ERROR, logging.WARN, logging.INFO, logging.DEBUG], help='the logging level (lower means more info)')
-    parser.add_argument('-diag', help='runs some diagnostics (may fail)', action='store_true')
     args = parser.parse_args()
 
     logging.basicConfig(level=args.log)
