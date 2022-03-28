@@ -67,7 +67,7 @@ def calculate_and_print_sum (args, amounts):
     sum = 0
     count = 0
     for amount in amounts:
-        if (amount >= args.min * 100) and (amount <= args.max * 100):
+        if (amount >= args.minAmount * 100) and (amount <= args.maxAmount * 100):
             logging.info ('  Adding amount CHF (cents) {amount}'.format(amount=amount))
             sum += amount
             count += 1
@@ -75,6 +75,14 @@ def calculate_and_print_sum (args, amounts):
             logging.info ('  Ignoring amount CHF (cents) {amount}'.format(amount=amount))
 
     return [sum, count]
+
+# returns true if the -wd parameter is false (all days are considered) OR
+#              if the -wd paramater is true (only weekdays) and the date is between Monday and Friday
+def is_day_of_week (args, date):
+    if not args.weekdays:
+        return True
+    else:
+        return date.weekday() <= 4
 
 
 # Goes through all PDFs in the desired directory, extracts amounts, and calculates the sum
@@ -98,7 +106,9 @@ def print_total_sum_from_files (args):
                 latest_receipt_found = date_of_receipt
             logging.info ('  File contains amount CHF (cents) {amount}'.format (amount=amount))
             # check if date_of_receipt is within the bounds given as arguments
-            if (date_of_receipt >= args.start) and (date_of_receipt <= args.end):
+            if (date_of_receipt >= args.startDate) and \
+               (date_of_receipt <= args.endDate) and \
+               (is_day_of_week(args, date_of_receipt)):
                 amounts.append(amount)
     result = calculate_and_print_sum(args, amounts)
     print ('Total sum: CHF {sum:.2f} ({count} entries)'.format(sum = result[0]/100, count=result[1]))
@@ -124,12 +134,13 @@ def main():
     parser = argparse.ArgumentParser(description='Extract amounts from EasyRide purchase receipts and sum them up.')
     parser.add_argument('path', metavar='PATH', default='.', nargs='?', help='the path where the PDF files with the receipts are located. Default is "."')
     parser.add_argument('-language', default='EN', choices=SUPPORTED_LANGUAGES, required=False, help='the language of the receipts')
-    parser.add_argument('-min', default=DEFAULT_MIN_AMOUNT, type=float, required=False, help='the minimum amount that is considered')
-    parser.add_argument('-max', default=DEFAULT_MAX_AMOUNT, type=float, required=False, help='the maximum amount that is considered')
-    parser.add_argument('-start', default='1970-01-01', type=lambda s: datetime.strptime(s, '%Y-%m-%d'), required=False, help='the start date in format YYYY-MM-DD')
-    parser.add_argument('-end', default=datetime.now().strftime('%Y-%m-%d'), type=lambda s: datetime.strptime(s, '%Y-%m-%d'), required=False, help='the end date in format YYYY-MM-DD')
+    parser.add_argument('-minAmount', default=DEFAULT_MIN_AMOUNT, type=float, required=False, help='the minimum amount that is considered')
+    parser.add_argument('-maxAmount', default=DEFAULT_MAX_AMOUNT, type=float, required=False, help='the maximum amount that is considered')
+    parser.add_argument('-startDate', default='1970-01-01', type=lambda s: datetime.strptime(s, '%Y-%m-%d'), required=False, help='the start date in format YYYY-MM-DD')
+    parser.add_argument('-endDate', default=datetime.now().strftime('%Y-%m-%d'), type=lambda s: datetime.strptime(s, '%Y-%m-%d'), required=False, help='the end date in format YYYY-MM-DD')
+    parser.add_argument('-weekdays', help='only consider receipts from weekdays (Monday-Friday)', action='store_true')
     parser.add_argument('-log', type=int, default=logging.WARN, choices=[logging.ERROR, logging.WARN, logging.INFO, logging.DEBUG], help='the logging level (lower means more info)')
-    parser.add_argument('-d', '--diag', help='runs some diagnostics (may fail)', action='store_true')
+    parser.add_argument('-diag', help='runs some diagnostics (may fail)', action='store_true')
     args = parser.parse_args()
 
     logging.basicConfig(level=args.log)
