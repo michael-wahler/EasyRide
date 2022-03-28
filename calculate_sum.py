@@ -129,10 +129,7 @@ def main():
 
     logging.basicConfig(level=args.log)
 
-    if not args.diag:
-        print_total_sum_from_files (args)
-    else:
-        run_diag (args)
+    print_total_sum_from_files (args)
 
 if __name__ == "__main__":
     main()
